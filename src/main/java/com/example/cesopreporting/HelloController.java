@@ -1,12 +1,14 @@
 package com.example.cesopreporting;
-
+import com.example.cesopreporting.validator.CorrectionXmlValidator;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.cesopreporting.generator.CesopXmlGenerator;
 import com.example.cesopreporting.validator.CesopXmlValidator;
-import com.example.cesopreporting.validator.DipXmlValidator;
 import com.example.cesopreporting.submission.DipSubmissionGenerator;
+import com.example.cesopreporting.validator.DipXmlValidator;
+import com.example.cesopreporting.correction.CorrectionXmlGenerator;
 
 @RestController
 public class HelloController {
@@ -16,12 +18,17 @@ public class HelloController {
         return "Hello, CESOP!";
     }
 
+    // =========================================================
+    // CESOP XML VALIDATION
+    // =========================================================
+
     @GetMapping("/validate")
     public String validateXml() {
 
-        boolean valid = CesopXmlValidator.validate(
-                "generated-cesop.xml"
-        );
+        boolean valid =
+                CesopXmlValidator.validate(
+                        "generated-cesop.xml"
+                );
 
         if (valid) {
             return "CESOP XML is valid!";
@@ -29,6 +36,10 @@ public class HelloController {
             return "CESOP XML is invalid!";
         }
     }
+
+    // =========================================================
+    // CESOP XML GENERATION
+    // =========================================================
 
     @GetMapping("/generate")
     public String generateXml() {
@@ -48,13 +59,18 @@ public class HelloController {
         }
     }
 
+    // =========================================================
+    // DIP SUBMISSION GENERATION
+    // =========================================================
+
     @GetMapping("/submission/generate")
     public String generateSubmission() {
 
         try {
 
             String filePath =
-                    DipSubmissionGenerator.generateDipXml();
+                    DipSubmissionGenerator
+                            .generateDipXml();
 
             return "DIP submission XML generated successfully!<br>"
                     + "File: " + filePath;
@@ -62,21 +78,73 @@ public class HelloController {
         } catch (Exception e) {
 
             return "DIP submission XML generation failed: "
-                    + e;
+                    + e.getMessage();
         }
     }
 
-    @GetMapping("/submission/validate")
-public String validateSubmission() {
+    // =========================================================
+    // DIP SUBMISSION VALIDATION
+    // =========================================================
 
-    boolean valid = DipXmlValidator.validate(
-            "generated-dip-submission.xml"
-    );
+    @GetMapping("/submission/validate")
+    public String validateSubmission() {
+
+        boolean valid =
+                DipXmlValidator.validate(
+                        "generated-dip-submission.xml"
+                );
+
+        if (valid) {
+
+            return "DIP submission XML is valid!";
+
+        } else {
+
+            return "DIP submission XML is invalid!";
+        }
+    }
+
+    // =========================================================
+    // CORRECTION XML GENERATION
+    // =========================================================
+
+    @GetMapping("/correction/generate")
+    public String generateCorrection(
+            @RequestParam String paymentId) {
+
+        try {
+
+            String filePath =
+                    CorrectionXmlGenerator
+                            .generateCorrectionXml(
+                                    paymentId
+                            );
+
+            return "Correction XML generated successfully!<br>"
+                    + "File: " + filePath;
+
+        } catch (Exception e) {
+
+            return "Correction XML generation failed: "
+                    + e.getMessage();
+        }
+    }
+
+    @GetMapping("/correction/validate")
+public String validateCorrection() {
+
+    boolean valid =
+            CorrectionXmlValidator.validate(
+                    "generated-correction.xml"
+            );
 
     if (valid) {
-        return "DIP submission XML is valid!";
+
+        return "Correction XML is valid!";
+
     } else {
-        return "DIP submission XML is invalid!";
+
+        return "Correction XML is invalid!";
     }
 }
 }

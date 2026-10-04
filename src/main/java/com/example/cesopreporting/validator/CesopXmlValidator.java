@@ -1,5 +1,5 @@
 package com.example.cesopreporting.validator;
-import com.example.cesopreporting.validator.DipXmlValidator;
+
 import java.io.File;
 
 import javax.xml.XMLConstants;
@@ -35,10 +35,8 @@ public class CesopXmlValidator {
 
         } catch (Exception e) {
 
-            System.out.println(
-                    "XML validation failed: "
-                            + e.getMessage()
-            );
+            System.out.println("XML validation failed:");
+            e.printStackTrace();
 
             return false;
         }
