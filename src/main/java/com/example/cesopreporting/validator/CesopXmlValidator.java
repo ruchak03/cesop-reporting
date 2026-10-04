@@ -1,0 +1,46 @@
+package com.example.cesopreporting.validator;
+import com.example.cesopreporting.validator.DipXmlValidator;
+import java.io.File;
+
+import javax.xml.XMLConstants;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+
+public class CesopXmlValidator {
+
+    public static boolean validate(String xmlFilePath) {
+
+        try {
+
+            File xsdFile =
+                    new File(
+                            "src/main/resources/xsd/cesop_PaymentData.xsd"
+                    );
+
+            SchemaFactory factory =
+                    SchemaFactory.newInstance(
+                            XMLConstants.W3C_XML_SCHEMA_NS_URI
+                    );
+
+            Schema schema =
+                    factory.newSchema(xsdFile);
+
+            schema.newValidator().validate(
+                    new javax.xml.transform.stream.StreamSource(
+                            new File(xmlFilePath)
+                    )
+            );
+
+            return true;
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "XML validation failed: "
+                            + e.getMessage()
+            );
+
+            return false;
+        }
+    }
+}
