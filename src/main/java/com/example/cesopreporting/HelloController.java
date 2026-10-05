@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.cesopreporting.generator.CesopXmlGenerator;
 import com.example.cesopreporting.validator.CesopXmlValidator;
 import com.example.cesopreporting.submission.DipSubmissionGenerator;
+import com.example.cesopreporting.submission.DipResubmissionGenerator;
+import com.example.cesopreporting.validator.DipResubmissionXmlValidator;
 import com.example.cesopreporting.validator.DipXmlValidator;
 import com.example.cesopreporting.correction.CorrectionXmlGenerator;
 
@@ -145,6 +147,36 @@ public String validateCorrection() {
     } else {
 
         return "Correction XML is invalid!";
+    }
+}
+
+@GetMapping("/submission/resubmit")
+public String generateResubmission() {
+    try {
+        String filePath =
+                DipResubmissionGenerator.generateResubmissionXml();
+
+        return "DIP resubmission XML generated successfully!<br>"
+                + "File: " + filePath;
+
+    } catch (Exception e) {
+        return "DIP resubmission XML generation failed: "
+                + e.getMessage();
+    }
+}
+
+@GetMapping("/submission/resubmit/validate")
+public String validateResubmission() {
+
+    boolean valid =
+            DipResubmissionXmlValidator.validate(
+                    "generated-dip-resubmission.xml"
+            );
+
+    if (valid) {
+        return "DIP resubmission XML is valid!";
+    } else {
+        return "DIP resubmission XML is invalid!";
     }
 }
 }

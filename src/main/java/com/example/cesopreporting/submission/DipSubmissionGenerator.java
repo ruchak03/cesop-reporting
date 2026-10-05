@@ -11,6 +11,8 @@ import de.itzbund.ozg.bzst.post.dip.v2.EnvironmentType;
 import de.itzbund.ozg.bzst.post.dip.v2.IdentityProviderType;
 import de.itzbund.ozg.bzst.post.dip.v2.ObjectFactory;
 
+import com.example.cesopreporting.service.DipReferenceStore;
+
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.Marshaller;
 
@@ -20,8 +22,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NamedNodeMap;
 
 import java.io.File;
 import java.math.BigInteger;
@@ -95,9 +95,18 @@ public class DipSubmissionGenerator {
             );
 
 
+            // Generate and save transfer ticket ID
+            String transferTicketId =
+                    "CESOP-" + UUID.randomUUID();
+
             consignment.setTransferticketId(
-                    "CESOP-" + UUID.randomUUID()
+                    transferTicketId
             );
+
+            DipReferenceStore.saveTransferTicketId(
+                    transferTicketId
+            );
+
 
             header.setConsignment(
                     consignment
