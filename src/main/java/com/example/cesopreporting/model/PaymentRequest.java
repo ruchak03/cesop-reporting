@@ -8,7 +8,9 @@ public class PaymentRequest {
     private String payerCountry;
     private String amount;
     private String currency;
+    private String paymentMethod;
     private String paymentDate;
+
 
     public String getPaymentId() {
         return paymentId;
@@ -18,6 +20,7 @@ public class PaymentRequest {
         this.paymentId = paymentId;
     }
 
+
     public String getPayeeName() {
         return payeeName;
     }
@@ -25,6 +28,7 @@ public class PaymentRequest {
     public void setPayeeName(String payeeName) {
         this.payeeName = payeeName;
     }
+
 
     public String getPayeeCountry() {
         return payeeCountry;
@@ -34,6 +38,7 @@ public class PaymentRequest {
         this.payeeCountry = payeeCountry;
     }
 
+
     public String getPayerCountry() {
         return payerCountry;
     }
@@ -41,6 +46,7 @@ public class PaymentRequest {
     public void setPayerCountry(String payerCountry) {
         this.payerCountry = payerCountry;
     }
+
 
     public String getAmount() {
         return amount;
@@ -50,6 +56,7 @@ public class PaymentRequest {
         this.amount = amount;
     }
 
+
     public String getCurrency() {
         return currency;
     }
@@ -57,6 +64,16 @@ public class PaymentRequest {
     public void setCurrency(String currency) {
         this.currency = currency;
     }
+
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
 
     public String getPaymentDate() {
         return paymentDate;

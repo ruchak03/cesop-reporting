@@ -1,7 +1,5 @@
 package com.example.cesopreporting.submission;
 
-import com.example.cesopreporting.service.DipReferenceStore;
-
 import de.itzbund.ozg.bzst.post.dip.v2.ApplicationType;
 import de.itzbund.ozg.bzst.post.dip.v2.ConsignmentItemType;
 import de.itzbund.ozg.bzst.post.dip.v2.ConsignmentType;
@@ -12,6 +10,8 @@ import de.itzbund.ozg.bzst.post.dip.v2.DipType;
 import de.itzbund.ozg.bzst.post.dip.v2.EnvironmentType;
 import de.itzbund.ozg.bzst.post.dip.v2.IdentityProviderType;
 import de.itzbund.ozg.bzst.post.dip.v2.ObjectFactory;
+
+import com.example.cesopreporting.service.DipReferenceStore;
 
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.Marshaller;
@@ -48,7 +48,7 @@ public class DipResubmissionGenerator {
 
                 throw new RuntimeException(
                         "No previous DIP submission found. "
-                        + "Run /submission/generate first."
+                                + "Run /submission/generate first."
                 );
             }
 
@@ -97,6 +97,10 @@ public class DipResubmissionGenerator {
             );
 
 
+            // ---------------------------------------------------------
+            // Creation time
+            // ---------------------------------------------------------
+
             OffsetDateTime now =
                     OffsetDateTime.now(ZoneOffset.UTC);
 
@@ -120,6 +124,17 @@ public class DipResubmissionGenerator {
                     "CESOP-" + UUID.randomUUID();
 
             consignment.setTransferticketId(
+                    newTransferTicketId
+            );
+
+
+            // ---------------------------------------------------------
+            // Save NEW transfer ticket ID
+            //
+            // This becomes the latest submission ticket.
+            // ---------------------------------------------------------
+
+            DipReferenceStore.saveTransferTicketId(
                     newTransferTicketId
             );
 
@@ -180,7 +195,7 @@ public class DipResubmissionGenerator {
 
                 throw new RuntimeException(
                         "generated-cesop.xml does not exist. "
-                        + "Run /generate first."
+                                + "Run /generate first."
                 );
             }
 

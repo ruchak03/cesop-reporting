@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>CESOP Payment Collection</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f6f8;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #222;
+        }
+
+        h2 {
+            margin-top: 30px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        #message,
+        #xmlMessage,
+        #validationMessage {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .payments {
+            margin-top: 30px;
+        }
+
+        .payment-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 6px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <h1>CESOP Payment Collection</h1>
+
+    <p class="subtitle">
+        Enter payment details to collect them through the local application.
+    </p>
+
+
+    <!-- ============================= -->
+    <!-- PAYMENT FORM -->
+    <!-- ============================= -->
+
+    <form id="paymentForm">
+
+
+        <div class="form-group">
+
+            <label>Payment ID</label>
+
+            <input
+                type="text"
+                id="paymentId"
+                placeholder="PAY005"
+                required>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Payee Name</label>
+
+            <input
+                type="text"
+                id="payeeName"
+                placeholder="Test Merchant"
+                required>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Payee Country</label>
+
+            <input
+                type="text"
+                id="payeeCountry"
+                placeholder="FR"
+                maxlength="2"
+                required>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Payer Country</label>
+
+            <input
+                type="text"
+                id="payerCountry"
+                placeholder="DE"
+                maxlength="2"
+                required>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Amount</label>
+
+            <input
+                type="number"
+                id="amount"
+                placeholder="150.00"
+                step="0.01"
+                required>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Currency</label>
+
+            <input
+                type="text"
+                id="currency"
+                placeholder="EUR"
+                maxlength="3"
+                required>
+
+        </div>
+
+
+        <!-- NEW PAYMENT METHOD FIELD -->
+
+        <div class="form-group">
+
+            <label>Payment Method</label>
+
+            <select id="paymentMethod" required>
+
+                <option value="">
+                    Select Payment Method
+                </option>
+
+                <option value="CARD">
+                    Card
+                </option>
+
+                <option value="BANK_TRANSFER">
+                    Bank Transfer
+                </option>
+
+                <option value="DIRECT_DEBIT">
+                    Direct Debit
+                </option>
+
+                <option value="OTHER">
+                    Other
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Payment Date</label>
+
+            <input
+                type="date"
+                id="paymentDate"
+                required>
+
+        </div>
+
+
+        <button type="submit">
+            Collect Payment
+        </button>
+
+    </form>
+
+
+    <!-- ============================= -->
+    <!-- PAYMENT STATUS -->
+    <!-- ============================= -->
+
+    <div id="message"></div>
+
+
+    <!-- ============================= -->
+    <!-- XML ACTIONS -->
+    <!-- ============================= -->
+
+    <button
+        type="button"
+        onclick="generateXml()">
+
+        Generate CESOP XML
+
+    </button>
+
+
+    <div id="xmlMessage"></div>
+
+
+    <button
+        type="button"
+        onclick="validateXml()">
+
+        Validate CESOP XML
+
+    </button>
+
+
+    <div id="validationMessage"></div>
+
+
+    <!-- ============================= -->
+    <!-- COLLECTED PAYMENTS -->
+    <!-- ============================= -->
+
+    <div class="payments">
+
+        <h2>Collected Payments</h2>
+
+        <div id="paymentList">
+            Loading payments...
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+
+    // ==========================================
+    // HTML ELEMENTS
+    // ==========================================
+
+    const paymentForm =
+        document.getElementById("paymentForm");
+
+    const message =
+        document.getElementById("message");
+
+    const paymentList =
+        document.getElementById("paymentList");
+
+    const xmlMessage =
+        document.getElementById("xmlMessage");
+
+    const validationMessage =
+        document.getElementById("validationMessage");
+
+
+    // ==========================================
+    // COLLECT PAYMENT
+    // ==========================================
+
+    paymentForm.addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const payment = {
+
+                paymentId:
+                    document.getElementById("paymentId").value,
+
+                payeeName:
+                    document.getElementById("payeeName").value,
+
+                payeeCountry:
+                    document.getElementById("payeeCountry").value,
+
+                payerCountry:
+                    document.getElementById("payerCountry").value,
+
+                amount:
+                    document.getElementById("amount").value,
+
+                currency:
+                    document.getElementById("currency").value,
+
+                paymentMethod:
+                    document.getElementById("paymentMethod").value,
+
+                paymentDate:
+                    document.getElementById("paymentDate").value
+
+            };
+
+
+            try {
+
+                const response = await fetch(
+                    "/payments",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify(payment)
+                    }
+                );
+
+
+                const result =
+                    await response.text();
+
+
+                if (response.ok) {
+
+                    message.className =
+                        "success";
+
+                    message.style.display =
+                        "block";
+
+                    message.textContent =
+                        result;
+
+
+                    paymentForm.reset();
+
+
+                    loadPayments();
+
+                }
+
+                else {
+
+                    throw new Error(result);
+
+                }
+
+            }
+
+            catch (error) {
+
+                message.className =
+                    "error";
+
+                message.style.display =
+                    "block";
+
+                message.textContent =
+                    "Failed to collect payment: "
+                    + error.message;
+
+            }
+
+        }
+    );
+
+
+    // ==========================================
+    // LOAD COLLECTED PAYMENTS
+    // ==========================================
+
+    async function loadPayments() {
+
+        try {
+
+            const response =
+                await fetch("/payments");
+
+
+            const payments =
+                await response.json();
+
+
+            paymentList.innerHTML = "";
+
+
+            if (payments.length === 0) {
+
+                paymentList.innerHTML =
+                    "<p>No payments collected yet.</p>";
+
+                return;
+            }
+
+
+            payments.forEach(
+                payment => {
+
+                    const div =
+                        document.createElement("div");
+
+
+                    div.className =
+                        "payment-item";
+
+
+                    div.innerHTML = `
+
+                        <strong>
+                            ${payment.paymentId}
+                        </strong>
+
+                        <br>
+
+                        Payee:
+                        ${payment.payeeName}
+
+                        <br>
+
+                        Payee Country:
+                        ${payment.payeeCountry}
+
+                        <br>
+
+                        Payer Country:
+                        ${payment.payerCountry}
+
+                        <br>
+
+                        Amount:
+                        ${payment.amount}
+                        ${payment.currency}
+
+                        <br>
+
+                        Payment Method:
+                        ${payment.paymentMethod || "Not specified"}
+
+                        <br>
+
+                        Payment Date:
+                        ${payment.paymentDate}
+
+                    `;
+
+
+                    paymentList.appendChild(div);
+
+                }
+            );
+
+        }
+
+        catch (error) {
+
+            paymentList.innerHTML =
+                "<p>Unable to load payments.</p>";
+
+        }
+
+    }
+
+
+    // ==========================================
+    // GENERATE CESOP XML
+    // ==========================================
+
+    async function generateXml() {
+
+        try {
+
+            const response =
+                await fetch("/generate");
+
+
+            const result =
+                await response.text();
+
+
+            if (response.ok) {
+
+                xmlMessage.className =
+                    "success";
+
+                xmlMessage.style.display =
+                    "block";
+
+                xmlMessage.textContent =
+                    result;
+
+            }
+
+            else {
+
+                throw new Error(result);
+
+            }
+
+        }
+
+        catch (error) {
+
+            xmlMessage.className =
+                "error";
+
+            xmlMessage.style.display =
+                "block";
+
+            xmlMessage.textContent =
+                "Failed to generate CESOP XML: "
+                + error.message;
+
+        }
+
+    }
+
+
+    // ==========================================
+    // VALIDATE CESOP XML
+    // ==========================================
+
+    async function validateXml() {
+
+        try {
+
+            const response =
+                await fetch("/validate");
+
+
+            const result =
+                await response.text();
+
+
+            if (response.ok) {
+
+                validationMessage.className =
+                    "success";
+
+                validationMessage.style.display =
+                    "block";
+
+                validationMessage.textContent =
+                    result;
+
+            }
+
+            else {
+
+                throw new Error(result);
+
+            }
+
+        }
+
+        catch (error) {
+
+            validationMessage.className =
+                "error";
+
+            validationMessage.style.display =
+                "block";
+
+            validationMessage.textContent =
+                "CESOP XML validation failed: "
+                + error.message;
+
+        }
+
+    }
+
+
+    // ==========================================
+    // LOAD PAYMENTS WHEN PAGE OPENS
+    // ==========================================
+
+    loadPayments();
+
+
+</script>
+
+
+</body>
+
+</html>

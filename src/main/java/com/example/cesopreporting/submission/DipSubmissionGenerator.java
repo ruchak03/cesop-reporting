@@ -37,32 +37,35 @@ public class DipSubmissionGenerator {
 
         try {
 
-            // ---------------------------------------------------------
-            // 1. Create DIP
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 1. Create DIP root
+            // -------------------------------------------------
 
             DipType dip = new DipType();
 
             dip.setVersion("2.0");
 
 
-            // ---------------------------------------------------------
-            // 2. Header
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 2. Create DIP Header
+            // -------------------------------------------------
 
             DipHeaderType header = new DipHeaderType();
 
-            header.setEnvironment(
-                    EnvironmentType.TEST
-            );
+            // Local test environment
+            header.setEnvironment(EnvironmentType.TEST);
 
 
-            // ---------------------------------------------------------
-            // 3. Consignment
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 3. Create Consignment
+            // -------------------------------------------------
 
-            ConsignmentType consignment =
-                    new ConsignmentType();
+            ConsignmentType consignment = new ConsignmentType();
+
+
+            // -------------------------------------------------
+            // 4. Customer Identifier
+            // -------------------------------------------------
 
             CustomerIdentifierType customerIdentifier =
                     new CustomerIdentifierType();
@@ -71,14 +74,17 @@ public class DipSubmissionGenerator {
                     IdentityProviderType.ELSTER
             );
 
-            customerIdentifier.setIdentifier(
-                    "LOCALTEST"
-            );
+            // Local test identifier
+            customerIdentifier.setIdentifier("LOCALTEST");
 
             consignment.setCustomerIdentifier(
                     customerIdentifier
             );
 
+
+            // -------------------------------------------------
+            // 5. Creation Time
+            // -------------------------------------------------
 
             OffsetDateTime now =
                     OffsetDateTime.now(ZoneOffset.UTC);
@@ -95,7 +101,19 @@ public class DipSubmissionGenerator {
             );
 
 
-            // Generate and save transfer ticket ID
+            // -------------------------------------------------
+            // 6. Generate Transfer Ticket ID
+            // -------------------------------------------------
+            //
+            // This identifies this DIP submission.
+            //
+            // Example:
+            // CESOP-12345678-....
+            //
+            // This is stored so that a later resubmission
+            // can reference this submission.
+            // -------------------------------------------------
+
             String transferTicketId =
                     "CESOP-" + UUID.randomUUID();
 
@@ -103,19 +121,25 @@ public class DipSubmissionGenerator {
                     transferTicketId
             );
 
+
+            // Save the latest transfer ticket
             DipReferenceStore.saveTransferTicketId(
                     transferTicketId
             );
 
+
+            // -------------------------------------------------
+            // 7. Add Consignment to Header
+            // -------------------------------------------------
 
             header.setConsignment(
                     consignment
             );
 
 
-            // ---------------------------------------------------------
-            // 4. Application
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 8. Application
+            // -------------------------------------------------
 
             ApplicationType application =
                     new ApplicationType();
@@ -126,12 +150,19 @@ public class DipSubmissionGenerator {
                     application
             );
 
-            dip.setHeader(header);
+
+            // -------------------------------------------------
+            // 9. Add Header to DIP
+            // -------------------------------------------------
+
+            dip.setHeader(
+                    header
+            );
 
 
-            // ---------------------------------------------------------
-            // 5. DIP Body
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 10. Create DIP Body
+            // -------------------------------------------------
 
             DipBodyType body =
                     new DipBodyType();
@@ -144,9 +175,9 @@ public class DipSubmissionGenerator {
             );
 
 
-            // ---------------------------------------------------------
-            // 6. Read generated CESOP XML
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 11. Read generated CESOP XML
+            // -------------------------------------------------
 
             File cesopFile =
                     new File("generated-cesop.xml");
@@ -160,6 +191,10 @@ public class DipSubmissionGenerator {
             }
 
 
+            // -------------------------------------------------
+            // 12. Parse CESOP XML
+            // -------------------------------------------------
+
             DocumentBuilderFactory factory =
                     DocumentBuilderFactory.newInstance();
 
@@ -170,30 +205,30 @@ public class DipSubmissionGenerator {
                             .newDocumentBuilder()
                             .parse(cesopFile);
 
-
             Element cesopElement =
                     document.getDocumentElement();
 
 
-            // ---------------------------------------------------------
-            // 7. Put CESOP XML into DIP data
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 13. Put CESOP XML inside DIP consignment item
+            // -------------------------------------------------
 
             item.setData(
                     cesopElement
             );
 
-
             body.getConsignmentItem().add(
                     item
             );
 
-            dip.setBody(body);
+            dip.setBody(
+                    body
+            );
 
 
-            // ---------------------------------------------------------
-            // 8. Create JAXB context
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 14. Create JAXB Context
+            // -------------------------------------------------
 
             JAXBContext dipContext =
                     JAXBContext.newInstance(
@@ -201,6 +236,10 @@ public class DipSubmissionGenerator {
                             ObjectFactory.class
                     );
 
+
+            // -------------------------------------------------
+            // 15. Create Marshaller
+            // -------------------------------------------------
 
             Marshaller marshaller =
                     dipContext.createMarshaller();
@@ -216,9 +255,9 @@ public class DipSubmissionGenerator {
             );
 
 
-            // ---------------------------------------------------------
-            // 9. Create DIP root
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 16. Create DIP JAXBElement
+            // -------------------------------------------------
 
             ObjectFactory objectFactory =
                     new ObjectFactory();
@@ -227,9 +266,9 @@ public class DipSubmissionGenerator {
                     objectFactory.createDip(dip);
 
 
-            // ---------------------------------------------------------
-            // 10. Generate DIP XML
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 17. Save DIP XML
+            // -------------------------------------------------
 
             File outputFile =
                     new File(
@@ -242,14 +281,18 @@ public class DipSubmissionGenerator {
             );
 
 
-            // ---------------------------------------------------------
-            // 11. Clean duplicate namespace declarations
-            // ---------------------------------------------------------
+            // -------------------------------------------------
+            // 18. Remove duplicate namespace declarations
+            // -------------------------------------------------
 
             removeDuplicateNamespaces(
                     outputFile
             );
 
+
+            // -------------------------------------------------
+            // 19. Return generated file path
+            // -------------------------------------------------
 
             return outputFile.getAbsolutePath();
 
@@ -266,9 +309,9 @@ public class DipSubmissionGenerator {
     }
 
 
-    // -------------------------------------------------------------
-    // Remove duplicate xmlns:ns2 declarations
-    // -------------------------------------------------------------
+    // =========================================================
+    // Remove duplicate namespace declarations
+    // =========================================================
 
     private static void removeDuplicateNamespaces(
             File file
@@ -280,25 +323,18 @@ public class DipSubmissionGenerator {
                         StandardCharsets.UTF_8
                 );
 
-
         String namespacePrefix =
                 "xmlns:ns2=\"";
-
 
         int firstIndex =
                 xml.indexOf(namespacePrefix);
 
-
         if (firstIndex == -1) {
-
             return;
         }
 
-
         int searchFrom =
-                firstIndex
-                        + namespacePrefix.length();
-
+                firstIndex + namespacePrefix.length();
 
         while (true) {
 
@@ -308,30 +344,23 @@ public class DipSubmissionGenerator {
                             searchFrom
                     );
 
-
             if (nextIndex == -1) {
-
                 break;
             }
-
 
             int valueEnd =
                     xml.indexOf(
                             "\"",
-                            nextIndex
-                                    + namespacePrefix.length()
+                            nextIndex +
+                                    namespacePrefix.length()
                     );
 
-
             if (valueEnd == -1) {
-
                 break;
             }
 
-
             int attributeEnd =
                     valueEnd + 1;
-
 
             xml =
                     xml.substring(
@@ -343,11 +372,9 @@ public class DipSubmissionGenerator {
                             attributeEnd
                     );
 
-
             searchFrom =
                     nextIndex;
         }
-
 
         Files.writeString(
                 file.toPath(),

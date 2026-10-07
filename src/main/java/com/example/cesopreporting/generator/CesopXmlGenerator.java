@@ -579,20 +579,20 @@ public class CesopXmlGenerator {
         // =========================================
 
         Element dateTime =
-        document.createElementNS(
-                CESOP_NS,
-                "cesop:DateTime"
+                document.createElementNS(
+                        CESOP_NS,
+                        "cesop:DateTime"
+                );
+
+        dateTime.setAttribute(
+                "transactionDateType",
+                "CESOP701"
         );
 
-dateTime.setAttribute(
-        "transactionDateType",
-        "CESOP701"
-);
-
-dateTime.setTextContent(
-        payment.getPaymentDate()
-                + "T00:00:00Z"
-);
+        dateTime.setTextContent(
+                payment.getPaymentDate()
+                        + "T00:00:00Z"
+        );
 
         transaction.appendChild(
                 dateTime
@@ -620,6 +620,28 @@ dateTime.setTextContent(
         transaction.appendChild(
                 amount
         );
+
+        // =========================================
+        // PaymentMethod
+        // =========================================
+
+        if (payment.getPaymentMethod() != null
+                && !payment.getPaymentMethod().isBlank()) {
+
+            Element paymentMethod =
+                    document.createElementNS(
+                            CESOP_NS,
+                            "cesop:PaymentMethod"
+                    );
+
+            paymentMethod.setTextContent(
+                    payment.getPaymentMethod()
+            );
+
+            transaction.appendChild(
+                    paymentMethod
+            );
+        }
 
         // =========================================
         // Physical premises
