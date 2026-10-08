@@ -2,6 +2,7 @@ package com.example.cesopreporting.generator;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
@@ -10,17 +11,16 @@ import java.util.Map;
 import java.util.UUID;
 
 import javax.xml.datatype.DatatypeFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import eu.europa.ec.taxud.fiscalis.cesop.v1.CESOP;
 import eu.europa.ec.taxud.fiscalis.cesop.v1.MessageSpecType;
@@ -84,6 +84,7 @@ public class CesopXmlGenerator {
              * CESOP100 = new payment data
              * CESOP102 = no data to report
              */
+
             if (payments.isEmpty()) {
 
                 messageSpec.setMessageTypeIndic(
@@ -98,6 +99,7 @@ public class CesopXmlGenerator {
             }
 
             // Generate and remember the MessageRefId
+
             String messageRefId =
                     UUID.randomUUID().toString();
 
@@ -140,7 +142,9 @@ public class CesopXmlGenerator {
                             )
             );
 
-            cesop.setMessageSpec(messageSpec);
+            cesop.setMessageSpec(
+                    messageSpec
+            );
 
             // =========================================
             // 2. PaymentDataBody
@@ -163,13 +167,18 @@ public class CesopXmlGenerator {
              * Example/test BIC only.
              * Not a production credential.
              */
-            pspId.setValue("TRSYDEFFXXX");
+
+            pspId.setValue(
+                    "TRSYDEFFXXX"
+            );
 
             pspId.setPSPIdType(
                     PSPIdTypeType.BIC
             );
 
-            reportingPSP.setPSPId(pspId);
+            reportingPSP.setPSPId(
+                    pspId
+            );
 
             paymentDataBody.setReportingPSP(
                     reportingPSP
@@ -330,7 +339,9 @@ public class CesopXmlGenerator {
                     firstPayment.getPayeeName()
             );
 
-            reportedPayee.appendChild(name);
+            reportedPayee.appendChild(
+                    name
+            );
 
             // =====================================
             // Country
@@ -346,7 +357,9 @@ public class CesopXmlGenerator {
                     firstPayment.getPayeeCountry()
             );
 
-            reportedPayee.appendChild(country);
+            reportedPayee.appendChild(
+                    country
+            );
 
             // =====================================
             // Address
@@ -364,7 +377,9 @@ public class CesopXmlGenerator {
                     "true"
             );
 
-            reportedPayee.appendChild(address);
+            reportedPayee.appendChild(
+                    address
+            );
 
             // =====================================
             // TAXIdentification
@@ -448,15 +463,16 @@ public class CesopXmlGenerator {
                     docTypeIndic
             );
 
+            // Generate and remember original DocRefId
+
+            String generatedDocRefId =
+                    UUID.randomUUID().toString();
+
             Element docRefId =
                     document.createElementNS(
                             COMMON_NS,
                             "cm:DocRefId"
                     );
-
-            // Generate and remember original DocRefId
-            String generatedDocRefId =
-                    UUID.randomUUID().toString();
 
             docRefId.setTextContent(
                     generatedDocRefId
@@ -613,8 +629,26 @@ public class CesopXmlGenerator {
                 payment.getCurrency()
         );
 
+        /*
+         * CESOP requires the amount to have exactly
+         * two digits after the decimal point.
+         *
+         * Examples:
+         * 200    -> 200.00
+         * 50.5   -> 50.50
+         * 10.25  -> 10.25
+         */
+
+        BigDecimal amountValue =
+                new BigDecimal(payment.getAmount());
+
+        amountValue = amountValue.setScale(
+                2,
+                RoundingMode.HALF_UP
+        );
+
         amount.setTextContent(
-                payment.getAmount()
+                amountValue.toPlainString()
         );
 
         transaction.appendChild(
@@ -634,8 +668,49 @@ public class CesopXmlGenerator {
                             "cesop:PaymentMethod"
                     );
 
-            paymentMethod.setTextContent(
-                    payment.getPaymentMethod()
+            Element paymentMethodType =
+                    document.createElementNS(
+                            COMMON_NS,
+                            "cm:PaymentMethodType"
+                    );
+
+            String method =
+                    payment.getPaymentMethod();
+
+            if ("CARD".equalsIgnoreCase(method)) {
+
+                paymentMethodType.setTextContent(
+                        "Card payment"
+                );
+
+            } else if ("BANK_TRANSFER".equalsIgnoreCase(method)) {
+
+                paymentMethodType.setTextContent(
+                        "Bank transfer"
+                );
+
+            } else if ("DIRECT_DEBIT".equalsIgnoreCase(method)) {
+
+                paymentMethodType.setTextContent(
+                        "Direct debit"
+                );
+
+            } else if ("OTHER".equalsIgnoreCase(method)) {
+
+                paymentMethodType.setTextContent(
+                        "Other"
+                );
+
+            } else {
+
+                throw new RuntimeException(
+                        "Unsupported payment method: "
+                                + method
+                );
+            }
+
+            paymentMethod.appendChild(
+                    paymentMethodType
             );
 
             transaction.appendChild(

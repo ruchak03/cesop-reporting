@@ -2,6 +2,7 @@ package com.example.cesopreporting.correction;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -42,6 +43,7 @@ import jakarta.xml.bind.Marshaller;
 
 import com.example.cesopreporting.model.PaymentRequest;
 import com.example.cesopreporting.service.CesopReferenceStore;
+import com.example.cesopreporting.service.CorrectionStore;
 import com.example.cesopreporting.service.PaymentStore;
 
 public class CorrectionXmlGenerator {
@@ -54,6 +56,7 @@ public class CorrectionXmlGenerator {
 
     private static final String XSI_NS =
             "http://www.w3.org/2001/XMLSchema-instance";
+
 
     public static String generateCorrectionXml(String paymentId) {
 
@@ -68,6 +71,7 @@ public class CorrectionXmlGenerator {
             for (PaymentRequest payment : PaymentStore.getPayments()) {
 
                 if (paymentId.equals(payment.getPaymentId())) {
+
                     originalPayment = payment;
                     break;
                 }
@@ -79,6 +83,7 @@ public class CorrectionXmlGenerator {
                         "Payment not found: " + paymentId
                 );
             }
+
 
             // =========================================================
             // GET ORIGINAL CESOP REFERENCES
@@ -100,6 +105,24 @@ public class CorrectionXmlGenerator {
                 );
             }
 
+
+            // =========================================================
+            // GET CORRECTED PAYMENT
+            // =========================================================
+
+            PaymentRequest correctedPayment =
+                    CorrectionStore.getCorrection(paymentId);
+
+            if (correctedPayment == null) {
+
+                throw new RuntimeException(
+                        "Corrected payment data not found for payment "
+                                + paymentId
+                                + ". Update the correction first."
+                );
+            }
+
+
             // =========================================================
             // CESOP ROOT
             // =========================================================
@@ -109,6 +132,7 @@ public class CorrectionXmlGenerator {
             cesop.setVersion(
                     new BigDecimal("4.03")
             );
+
 
             // =========================================================
             // MESSAGE SPEC
@@ -143,6 +167,7 @@ public class CorrectionXmlGenerator {
                     originalMessageRefId
             );
 
+
             // =========================================================
             // REPORTING PERIOD
             // =========================================================
@@ -155,6 +180,7 @@ public class CorrectionXmlGenerator {
 
             messageSpec.setReportingPeriod(period);
 
+
             // =========================================================
             // TIMESTAMP
             // =========================================================
@@ -164,7 +190,8 @@ public class CorrectionXmlGenerator {
 
             String timestamp =
                     now.withNano(
-                            (now.getNano() / 1_000_000) * 1_000_000
+                            (now.getNano() / 1_000_000)
+                                    * 1_000_000
                     ).toString();
 
             messageSpec.setTimestamp(
@@ -175,12 +202,14 @@ public class CorrectionXmlGenerator {
 
             cesop.setMessageSpec(messageSpec);
 
+
             // =========================================================
             // PAYMENT DATA BODY
             // =========================================================
 
             PaymentDataBodyType paymentDataBody =
                     new PaymentDataBodyType();
+
 
             // =========================================================
             // REPORTING PSP
@@ -196,6 +225,7 @@ public class CorrectionXmlGenerator {
              * Test/example BIC.
              * Do not use this as a real production identifier.
              */
+
             pspId.setValue(
                     "TRSYDEFFXXX"
             );
@@ -210,12 +240,14 @@ public class CorrectionXmlGenerator {
                     reportingPSP
             );
 
+
             // =========================================================
             // CORRECTED PAYEE
             // =========================================================
 
             ReportedPayeeType payee =
                     new ReportedPayeeType();
+
 
             // ---------------------------------------------------------
             // Name
@@ -224,8 +256,10 @@ public class CorrectionXmlGenerator {
             NameType name =
                     new NameType();
 
+            // IMPORTANT:
+            // Use corrected payment data here.
             name.setValue(
-                    originalPayment.getPayeeName()
+                    correctedPayment.getPayeeName()
             );
 
             name.setNameType(
@@ -234,15 +268,17 @@ public class CorrectionXmlGenerator {
 
             payee.getName().add(name);
 
+
             // ---------------------------------------------------------
             // Country
             // ---------------------------------------------------------
 
             payee.setCountry(
                     CountryCodeType.valueOf(
-                            originalPayment.getPayeeCountry()
+                            correctedPayment.getPayeeCountry()
                     )
             );
+
 
             // ---------------------------------------------------------
             // Address
@@ -253,15 +289,22 @@ public class CorrectionXmlGenerator {
 
             address.setCountryCode(
                     CountryCodeType.valueOf(
-                            originalPayment.getPayeeCountry()
+                            correctedPayment.getPayeeCountry()
                     )
             );
 
+            /*
+             * Test corrected address.
+             *
+             * PaymentRequest currently does not contain
+             * a separate address field.
+             */
             address.setAddressFree(
                     "Corrected address for test"
             );
 
             payee.getAddress().add(address);
+
 
             // =========================================================
             // DOC SPEC
@@ -290,6 +333,7 @@ public class CorrectionXmlGenerator {
 
             payee.setDocSpec(docSpec);
 
+
             // Add payee
             paymentDataBody
                     .getReportedPayee()
@@ -298,6 +342,7 @@ public class CorrectionXmlGenerator {
             cesop.setPaymentDataBody(
                     paymentDataBody
             );
+
 
             // =========================================================
             // GENERATE BASIC XML
@@ -327,31 +372,30 @@ public class CorrectionXmlGenerator {
                     outputFile
             );
 
+
             // =========================================================
             // FIX CESOP ELEMENT ORDER
             // =========================================================
-            //
-            // Required order inside ReportedPayee:
-            //
-            // Name
-            // Country
-            // Address
-            // TAXIdentification
-            // AccountIdentifier
-            // ReportedTransaction
-            // DocSpec
-            //
-            // JAXB creates DocSpec before we add the transaction.
-            // Therefore we use DOM to place AccountIdentifier and
-            // ReportedTransaction before DocSpec.
-            // =========================================================
+
+            /*
+             * IMPORTANT:
+             *
+             * We pass correctedPayment here.
+             *
+             * Therefore the transaction data in the correction XML
+             * comes from the corrected payment, while the original
+             * payment is still used for the original DocRefId and
+             * MessageRefId.
+             */
 
             fixCorrectionElementOrder(
                     outputFile,
-                    originalPayment
+                    correctedPayment
             );
 
+
             return outputFile.getAbsolutePath();
+
 
         } catch (Exception e) {
 
@@ -364,6 +408,7 @@ public class CorrectionXmlGenerator {
             );
         }
     }
+
 
     // ================================================================
     // FIX CORRECTION XML ELEMENT ORDER
@@ -387,6 +432,7 @@ public class CorrectionXmlGenerator {
         Element root =
                 document.getDocumentElement();
 
+
         // ---------------------------------------------------------
         // Find ReportedPayee
         // ---------------------------------------------------------
@@ -403,6 +449,7 @@ public class CorrectionXmlGenerator {
                     "ReportedPayee not found in correction XML."
             );
         }
+
 
         // ---------------------------------------------------------
         // Find DocSpec
@@ -421,6 +468,7 @@ public class CorrectionXmlGenerator {
             );
         }
 
+
         // ---------------------------------------------------------
         // AccountIdentifier
         // ---------------------------------------------------------
@@ -437,6 +485,7 @@ public class CorrectionXmlGenerator {
                 "true"
         );
 
+
         // ---------------------------------------------------------
         // Create ReportedTransaction
         // ---------------------------------------------------------
@@ -451,6 +500,7 @@ public class CorrectionXmlGenerator {
                 "IsRefund",
                 "false"
         );
+
 
         // ---------------------------------------------------------
         // TransactionIdentifier
@@ -469,6 +519,7 @@ public class CorrectionXmlGenerator {
         transaction.appendChild(
                 transactionIdentifier
         );
+
 
         // ---------------------------------------------------------
         // DateTime
@@ -494,6 +545,7 @@ public class CorrectionXmlGenerator {
                 dateTime
         );
 
+
         // ---------------------------------------------------------
         // Amount
         // ---------------------------------------------------------
@@ -509,11 +561,93 @@ public class CorrectionXmlGenerator {
                 payment.getCurrency()
         );
 
+        /*
+         * CESOP requires exactly two decimal places.
+         *
+         * Examples:
+         * 200   -> 200.00
+         * 50.5  -> 50.50
+         * 10.25 -> 10.25
+         */
+
+        BigDecimal amountValue =
+                new BigDecimal(payment.getAmount());
+
+        amountValue = amountValue.setScale(
+                2,
+                RoundingMode.HALF_UP
+        );
+
         amount.setTextContent(
-                payment.getAmount()
+                amountValue.toPlainString()
         );
 
         transaction.appendChild(amount);
+
+
+        // ---------------------------------------------------------
+        // PaymentMethod
+        // ---------------------------------------------------------
+
+        if (payment.getPaymentMethod() != null
+                && !payment.getPaymentMethod().isBlank()) {
+
+            Element paymentMethod =
+                    document.createElementNS(
+                            CESOP_NS,
+                            "cesop:PaymentMethod"
+                    );
+
+            Element paymentMethodType =
+                    document.createElementNS(
+                            COMMON_NS,
+                            "cm:PaymentMethodType"
+                    );
+
+            String method =
+                    payment.getPaymentMethod();
+
+            if ("CARD".equalsIgnoreCase(method)) {
+
+                paymentMethodType.setTextContent(
+                        "Card payment"
+                );
+
+            } else if ("BANK_TRANSFER".equalsIgnoreCase(method)) {
+
+                paymentMethodType.setTextContent(
+                        "Bank transfer"
+                );
+
+            } else if ("DIRECT_DEBIT".equalsIgnoreCase(method)) {
+
+                paymentMethodType.setTextContent(
+                        "Direct debit"
+                );
+
+            } else if ("OTHER".equalsIgnoreCase(method)) {
+
+                paymentMethodType.setTextContent(
+                        "Other"
+                );
+
+            } else {
+
+                throw new RuntimeException(
+                        "Unsupported payment method: "
+                                + method
+                );
+            }
+
+            paymentMethod.appendChild(
+                    paymentMethodType
+            );
+
+            transaction.appendChild(
+                    paymentMethod
+            );
+        }
+
 
         // ---------------------------------------------------------
         // Physical premises
@@ -532,6 +666,7 @@ public class CorrectionXmlGenerator {
         transaction.appendChild(
                 physicalPremises
         );
+
 
         // ---------------------------------------------------------
         // Payer Member State
@@ -563,13 +698,16 @@ public class CorrectionXmlGenerator {
 
         transaction.appendChild(payerMS);
 
+
         // =========================================================
         // INSERT IN CORRECT ORDER
         // =========================================================
-        //
-        // AccountIdentifier must be before DocSpec.
-        // ReportedTransaction must also be before DocSpec.
-        // =========================================================
+
+        /*
+         * AccountIdentifier must be before DocSpec.
+         *
+         * ReportedTransaction must also be before DocSpec.
+         */
 
         reportedPayee.insertBefore(
                 accountIdentifier,
@@ -580,6 +718,7 @@ public class CorrectionXmlGenerator {
                 transaction,
                 docSpec
         );
+
 
         // =========================================================
         // NAMESPACE DECLARATIONS
@@ -602,6 +741,7 @@ public class CorrectionXmlGenerator {
                 "xmlns:xsi",
                 XSI_NS
         );
+
 
         // =========================================================
         // SAVE XML
@@ -629,6 +769,7 @@ public class CorrectionXmlGenerator {
         );
     }
 
+
     // ================================================================
     // FIND FIRST ELEMENT
     // ================================================================
@@ -644,6 +785,7 @@ public class CorrectionXmlGenerator {
                 );
 
         if (nodes.getLength() == 0) {
+
             return null;
         }
 
